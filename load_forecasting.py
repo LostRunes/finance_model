@@ -136,3 +136,132 @@ if naive_total_penalty > total_penalty:
     print("WIN: Model outperforms Naive baseline!")
 else:
     print("WARNING: Naive baseline is better than or equal to Model.")
+
+# 🔥 STEP 12 — Generate Visualizations
+import matplotlib.pyplot as plt
+
+print("\nGenerating Visualizations...")
+# 1. Actual vs Forecast (subset for clarity)
+plt.figure(figsize=(10, 5))
+test_sub = test.iloc[:500]
+plt.plot(test_sub["DATETIME"], test_sub["LOAD"], label="Actual")
+plt.plot(test_sub["DATETIME"], test_sub["forecast"], label="Forecast")
+plt.title("Actual vs Forecasted Load")
+plt.xlabel("Datetime")
+plt.ylabel("Load (kW)")
+plt.legend()
+plt.savefig("actual_vs_forecast.png")
+plt.close()
+
+# 2. Penalty by Hour
+plt.figure(figsize=(10, 5))
+test.groupby("hour")["penalty"].mean().plot(kind="bar")
+plt.title("Average Penalty by Hour")
+plt.xlabel("Hour of Day")
+plt.ylabel("Average Penalty")
+plt.savefig("penalty_by_hour.png")
+plt.close()
+
+# 3. Multiplier vs Penalty
+plt.figure(figsize=(10, 5))
+m_values = list(results.keys())
+p_values = list(results.values())
+plt.plot(m_values, p_values, marker='o')
+plt.title("Multiplier vs Total Penalty")
+plt.xlabel("Multiplier")
+plt.ylabel("Total Penalty")
+plt.savefig("multiplier_vs_penalty.png")
+plt.close()
+
+# 🔥 STEP 13 — Generate PDF Report
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
+
+print("Generating PDF Report...")
+pdf_path = "GRIDSHIELD_Stage1_Report.pdf"
+doc = SimpleDocTemplate(pdf_path, pagesize=letter)
+styles = getSampleStyleSheet()
+story = []
+
+# Title
+story.append(Paragraph("GRIDSHIELD – Stage 1 Load Forecast Risk Optimization Report", styles['Title']))
+story.append(Spacer(1, 12))
+
+# Executive Summary
+story.append(Paragraph("Executive Summary", styles['Heading2']))
+story.append(Paragraph("Objective: Minimize financial penalty under asymmetric ABT regulation. Under the current regulation, underforecasting incurs a penalty of ₹4/kWh, while overforecasting costs ₹2/kWh. Our cost-sensitive modeling approach aims to skew predictions slightly upward to leverage this asymmetry and reduce overall financial risk.", styles['Normal']))
+story.append(Spacer(1, 12))
+
+# Data Overview
+story.append(Paragraph("Data Overview", styles['Heading2']))
+story.append(Paragraph(f"The model uses 15-minute resolution load data (2013-2021), weather variables (Temperature, Humidity, Rain), and event/holiday indicators. Total training rows: {len(train):,}.", styles['Normal']))
+story.append(Spacer(1, 12))
+
+# Feature Engineering
+story.append(Paragraph("Feature Engineering", styles['Heading2']))
+story.append(Paragraph("The feature matrix includes: Time features (hour, day, month), Weekend & peak flags, Lag features (1-step, 96, 672), and Rolling 24h & 7d averages.", styles['Normal']))
+story.append(Spacer(1, 12))
+
+# Model Design
+story.append(Paragraph("Model Design", styles['Heading2']))
+story.append(Paragraph("A RandomForestRegressor model was trained using a time-based split with a cutoff of 2020-01-01 to ensure no data leakage and realistic validation metrics.", styles['Normal']))
+story.append(Spacer(1, 12))
+
+# Financial Penalty Function
+story.append(Paragraph("Financial Penalty Function", styles['Heading2']))
+story.append(Paragraph("Formula: Penalty = 4 * (Actual - Forecast) if Actual > Forecast else 2 * (Forecast - Actual). This asymmetric loss function penalizes shortages twice as heavily as surpluses.", styles['Normal']))
+story.append(Spacer(1, 12))
+
+# Results
+story.append(Paragraph("Results", styles['Heading2']))
+res_data = [
+    ["Metric", "Value"],
+    ["Total Penalty", f"{total_penalty:,.2f}"],
+    ["Peak Penalty", f"{peak_penalty:,.2f}"],
+    ["Off-Peak Penalty", f"{offpeak_penalty:,.2f}"],
+    ["Bias", f"{bias:.2f}%"],
+    ["P95 Abs Deviation", f"{p95_abs_dev:.2f}"],
+    ["Naive Penalty", f"{naive_total_penalty:,.2f}"],
+    ["Optimized Penalty", f"{results[best_m]:,.2f}"],
+    ["% Reduction vs Naive", f"{((naive_total_penalty - results[best_m])/naive_total_penalty)*100:.2f}%"]
+]
+t = Table(res_data)
+t.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                       ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                       ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                       ('GRID', (0, 0), (-1, -1), 1, colors.black)]))
+story.append(t)
+story.append(Spacer(1, 12))
+
+# Multiplier Sweep Table
+story.append(Paragraph("Multiplier Sweep Results", styles['Heading3']))
+sweep_data = [["Multiplier", "Total Penalty"]]
+for m, p in results.items():
+    sweep_data.append([str(m), f"{p:,.2f}"])
+st = Table(sweep_data)
+st.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'CENTER'), ('GRID', (0, 0), (-1, -1), 0.5, colors.grey)]))
+story.append(st)
+story.append(Spacer(1, 12))
+
+# Risk Strategy Explanation
+story.append(Paragraph("Risk Strategy Explanation", styles['Heading2']))
+story.append(Paragraph(f"A multiplier of {best_m} was found to be optimal because the model's inherent bias was slightly negative (-0.06%). By shifting the forecast upward, we reduce the frequency and magnitude of the ₹4/kWh underforecast penalties. The theoretical optimal quantile for a 4:2 ratio is 0.67, which aligns with our findings that a slight upward shift (0.5%) yields a lower total penalty than a 2% shift which would over-adjust and increase overforecast costs.", styles['Normal']))
+story.append(Spacer(1, 12))
+
+# Visualizations
+story.append(Paragraph("Visualizations", styles['Heading2']))
+story.append(Image("actual_vs_forecast.png", width=400, height=200))
+story.append(Spacer(1, 12))
+story.append(Image("penalty_by_hour.png", width=400, height=200))
+story.append(Spacer(1, 12))
+story.append(Image("multiplier_vs_penalty.png", width=400, height=200))
+story.append(Spacer(1, 24))
+
+# Reproducibility
+story.append(Paragraph("Reproducibility Instructions", styles['Heading2']))
+story.append(Paragraph("How to run: Execute 'python load_forecasting.py' in the working directory. Expected output includes initial metrics, multiplier sweep logs, and naive baseline comparison. The final PDF report is generated automatically.", styles['Normal']))
+
+doc.build(story)
+print("\nReport successfully generated: GRIDSHIELD_Stage1_Report.pdf")
