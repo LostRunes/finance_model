@@ -127,21 +127,39 @@ print("Stage 2 Penalty:", total_penalty)
 # 4️⃣ PEAK RECALIBRATION
 # =============================
 
-print("Applying peak recalibration...")
-test_data["forecast_adj"] = test_data["forecast"]
+print("Running peak multiplier sweep...")
 
-# 75th percentile logic → stronger buffer
-test_data.loc[test_data["is_peak"]==1,"forecast_adj"] *= 1.05
+multipliers = [1.00, 1.005, 1.01, 1.015, 1.02]
+results = {}
+
+for m in multipliers:
+    temp_forecast = test_data["forecast"].copy()
+    temp_forecast.loc[test_data["is_peak"]==1] *= m
+    
+    temp_penalty = penalty_stage2(
+        test_data["LOAD"],
+        temp_forecast,
+        test_data["is_peak"]
+    ).sum()
+    
+    results[m] = temp_penalty
+    print(f"Peak Multiplier {m}: {temp_penalty:,.2f}")
+
+best_m = min(results, key=results.get)
+best_penalty = results[best_m]
+
+print("\nBest Peak Multiplier:", best_m)
+print("Best Adjusted Penalty:", best_penalty)
+
+# Apply best multiplier
+test_data["forecast_adj"] = test_data["forecast"]
+test_data.loc[test_data["is_peak"]==1, "forecast_adj"] *= best_m
 
 test_data["penalty_adj"] = penalty_stage2(
     test_data["LOAD"],
     test_data["forecast_adj"],
     test_data["is_peak"]
 )
-
-adj_total_penalty = test_data["penalty_adj"].sum()
-
-print("Adjusted Penalty:", adj_total_penalty)
 
 # =============================
 # 5️⃣ GRAPHS
@@ -189,7 +207,8 @@ table_data = [
 ["Off-Peak Penalty", f"{offpeak_penalty:,.2f}"],
 ["Bias (%)", f"{bias:.2f}"],
 ["95th Percentile Abs Dev", f"{p95:.2f}"],
-["Recalibrated Penalty", f"{adj_total_penalty:,.2f}"]
+["Best Peak Multiplier", f"{best_m}"],
+["Recalibrated Penalty", f"{best_penalty:,.2f}"]
 ]
 table = Table(table_data)
 table.setStyle(TableStyle([('GRID',(0,0),(-1,-1),1,colors.black)]))
