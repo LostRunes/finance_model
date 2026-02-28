@@ -1,0 +1,27 @@
+# Electric Load Forecasting Walkthrough
+
+I have implemented a complete electric load forecasting pipeline in Python. The system processes raw load data, weather factors, and holiday events to train a cost-aware Random Forest model.
+
+## Key Features
+- **Data Integration**: Merged load, weather, and event data using precise datetime alignment.
+- **Feature Engineering**: Implemented seasonal features (hour, day, month) and critical lag features (1-step, 1-day, 1-week lags and rolling means).
+- **Time-Based Validation**: Used 2020-01-01 as the cutoff to ensure realistic model evaluation.
+- **Cost-Aware Optimization**: Applied an asymmetric penalty function (4x underforecast vs 2x overforecast) and optimized the forecast with a 2% upward shift.
+
+## Execution Results
+
+The script was executed successfully. Here are the observed metrics:
+
+### Initial Model Performance
+- **Total Penalty**: 3,924,960.00
+- **Peak Penalty**: 687,314.00
+- **Off-Peak Penalty**: 3,237,646.00
+- **Bias**: -0.06%
+- **P95 Absolute Deviation**: 136.19
+
+### Optimization Result
+- **Total Adjusted Penalty**: 4,931,997.51
+- **Optimization Outcome**: The 2% adjustment was tested against the asymmetric penalty. In this specific run, the adjustment increased the total penalty by 1,007,037.51, suggesting that the base model's bias was already well-centered for the given data, or a smaller adjustment is needed for this specific test period.
+
+## File Reference
+- [load_forecasting.py](file:///c:/Users/KIIT0001/Desktop/finance/load_forecasting.py): The main execution script.
