@@ -1,0 +1,1 @@
+DATETIME,LOAD,ACT_HEAT_INDEX,ACT_HUMIDITY,ACT_RAIN,ACT_TEMP,COOL_FACTOR,DATE,Holiday_Ind,hour,day_of_week,month,is_weekend,is_peak,lag_1,lag_96,lag_672,rolling_24h,rolling_7d,forecast,penalty
