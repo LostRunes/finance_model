@@ -1,0 +1,2 @@
+Bias_Positioning,Quantile_Approach,Peak_Risk_Mitigation,Penalty_Reduction_vs_Naive_%
+Slight upward bias introduced to reduce asymmetric underforecast exposure.,Implicit quantile targeting (~0.67) via multiplier adjustment.,Peak-hour flag introduced; buffer calibrated using multiplier sweep.,85.1911983565925
