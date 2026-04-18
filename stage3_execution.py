@@ -158,4 +158,18 @@ print("\n95th Percentile Absolute Deviation:", p95)
 print("\nWorst 5 Deviation Intervals:")
 print(worst_5)
 
+# ==========================================
+# 5️⃣ EXPORT FINAL OUTPUT FOR POWER BI
+# ==========================================
+
+print("\nExporting Stage3_Final_Output.csv...")
+test["forecast"] = test["forecast_base"]
+test["forecast_adj"] = forecast_final
+test["penalty"] = penalty_stage3(test["LOAD"], test["forecast"], test["is_peak"])
+test["penalty_adj"] = penalty_stage3(test["LOAD"], test["forecast_adj"], test["is_peak"])
+
+export_cols = ["DATETIME", "forecast", "forecast_adj", "penalty", "penalty_adj"]
+test[export_cols].to_csv("Stage3_Final_Output.csv", index=False)
+
+print("✅ Stage 3 Final Output exported!")
 print("\n===== STAGE 3 COMPLETE =====")
