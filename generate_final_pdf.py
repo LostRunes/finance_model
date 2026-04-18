@@ -197,7 +197,7 @@ def create_report():
     story.append(Paragraph("Power BI Integration", header_style))
     story.append(Paragraph(
         "The finalized forecasting dataset is exported via `PowerBI_Final_Dataset.csv` for real-time visualization "
-        "in the GridShield Executive Dashboard. This allows for live monitoring of penalty exposure and model health.", body_style))
+        "in the GridShield Executive Dashboard. This allows for live monitoring of penalty exposure and model health. ", body_style))
 
     # =====================================================
     # 6. CONCLUSION
